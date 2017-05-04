@@ -1,9 +1,10 @@
 DROP TABLE IF EXISTS users;
 CREATE TABLE IF NOT EXISTS users (
+    user_id INT NOT NULL AUTO_INCREMENT,
     username VARCHAR(20) NOT NULL,
     password VARCHAR(20) NOT NULL,
-    user_type VARCHAR(20) NOT NULL,
-    PRIMARY KEY(username, user_type)
+    user_type VARCHAR(20),
+    PRIMARY KEY(user_id)
 );
 
 DROP TABLE IF EXISTS relationships;
