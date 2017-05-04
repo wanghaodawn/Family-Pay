@@ -4,6 +4,10 @@ const mysql = require('mysql');
 
 const model = require('./model.js');
 const helper = require('./helper.js');
+const request = require('request');
+const bodyParser = require('body-parser');
+
+const ACCESS_TOKEN = '531c2321-bfa8-3431-822e-72bb39df933b';
 
 
 // Configurate the connection to MySQL
@@ -40,9 +44,46 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(bodyParser.json({ limit: '4mb' }));     // allows app to read data from URLs (GET requests)
+app.use(bodyParser.urlencoded({ extended: false }));
 
-app.get('/', (req, res) => {
-    res.send('Hello Express!');
+
+app.post('/api/login/', (req, res) => {
+
+    console.log('receive login data: ' + req.body.username + " " + req.body.password);
+    var postData = {
+        username: req.body.username,
+        password: req.body.password
+    };
+
+    var pncLoginUrl = 'https://nginx0.pncapix.com/security/v1.0.0/login';
+    var options = {
+        method: 'POST',
+        body: postData,
+        json: true,
+        url: pncLoginUrl,
+        headers: {
+            "Authorization": "Bearer " + ACCESS_TOKEN
+        }
+    };
+
+    request(options, function (err, apiResonse, body) {
+        if (err) {
+            console.error('error posting json: ', err);
+            throw err
+        }
+
+        var statusCode = apiResonse.statusCode;
+        console.log('statusCode: ', statusCode);
+
+        if (statusCode == 200 || statusCode == 201) {
+            console.log('Login successfully ' + apiResonse.body.token);
+            res.json({message: helper.SUCCESS, token: apiResonse.body.token}).status(200);
+        } else {
+            res.json({message: helper.FAIL, token: ""}).status(400);
+        }
+
+    });
 });
 
 

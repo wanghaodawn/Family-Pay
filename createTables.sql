@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS users;
 CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(20) NOT NULL,
     password VARCHAR(20) NOT NULL,
@@ -5,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     PRIMARY KEY(username, user_type)
 );
 
+DROP TABLE IF EXISTS relationships;
 CREATE TABLE IF NOT EXISTS relationships (
     child_username VARCHAR(20) NOT NULL,
     parent_username VARCHAR(20) NOT NULL,
