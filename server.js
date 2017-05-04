@@ -46,5 +46,11 @@ app.get('/', (req, res) => {
 });
 
 
+app.get('/', (req, res) => {
+    res.send('Hello Express!');
+});
+
+
+
 app.listen(port);
 console.log(`Starting server at localhost:${port}`);
