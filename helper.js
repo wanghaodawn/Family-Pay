@@ -13,6 +13,9 @@ module.exports = {
     MISSING_USERNAME: 'Missing Username',
     MISSING_USER_TYPE: 'Missing user_type',
     MISSING_PASSWORD: 'Missing Password',
+    MISSING_QUOTA_ONE_TIME: 'Missing One Time Quota',
+    MISSING_QUOTA_MONTH: 'Missing Monthly Quota',
     INVALID_USER_TYPE: 'Invalid user_type',
-    READ_IMAGE_ERROR: 'Cannot read the image'
+    READ_IMAGE_ERROR: 'Cannot read the image',
+    ERROR: 'Error'
 }

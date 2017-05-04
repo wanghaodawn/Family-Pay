@@ -72,7 +72,9 @@ app.post('/api/check_login/', (req, res) => {
         request(options, function (err, apiResonse, body) {
             if (err) {
                 console.error('error calling get all payments api: ', err);
-                throw err
+                return res.send({
+                    message: helper.ERROR
+                });
             }
 
             var statusCode = apiResonse.statusCode;
@@ -98,13 +100,17 @@ app.post('/api/login/', (req, res) => {
     // check para exist
     if (! ('username' in req.body)) {
         return res.send({
-            message: helper.MISSING_USERNAME
+            message: helper.MISSING_USERNAME,
+            token: "",
+            username: ""
         });
     }
 
     if (! ('password' in req.body)) {
         return res.send({
-            message: helper.MISSING_PASSWORD
+            message: helper.MISSING_PASSWORD,
+            token: "",
+            username: ""
         });
     }
 
@@ -128,7 +134,11 @@ app.post('/api/login/', (req, res) => {
     request(options, function (err, apiResonse, body) {
         if (err) {
             console.error('error calling login api json: ', err);
-            throw err
+            return res.send({
+                message: helper.ERROR,
+                token: "",
+                username: ""
+            });
         }
 
         var statusCode = apiResonse.statusCode;
@@ -195,65 +205,34 @@ app.get('/api/get_image?', (req, res) => {
 });
 
 
-// app.post('/api/add_member/', (req, res) => {
-//     // check para exist
-//     if (! 'username' in req.body) {
-//         return res.send({
-//             message: helper.MISSING_USERNAME
-//         });
-//     }
-//
-//     if (! 'password' in req.body) {
-//         return res.send({
-//             message: helper.MISSING_PASSWORD
-//         });
-//     }
-//
-//     // console.log('receive login data: ' + req.body.username + " " + req.body.password);
-//     var postData = {
-//         username: req.body.username,
-//         password: req.body.password
-//     };
-//
-//     var pncLoginUrl = 'https://nginx0.pncapix.com/security/v1.0.0/login';
-//     var options = {
-//         method: 'POST',
-//         body: postData,
-//         json: true,
-//         url: pncLoginUrl,
-//         headers: {
-//             "Authorization": "Bearer " + ACCESS_TOKEN
-//         }
-//     };
-//
-//     request(options, function (err, apiResonse, body) {
-//         if (err) {
-//             console.error('error calling login api json: ', err);
-//             throw err
-//         }
-//
-//         var statusCode = apiResonse.statusCode;
-//         console.log('statusCode: ', statusCode);
-//
-//         if (statusCode == 200 || statusCode == 201) {
-//             console.log('Login successfully ' + apiResonse.body.token);
-//
-//             // TODO: store new parent
-//
-//             res.send({
-//                 message: helper.SUCCESS,
-//                 token: apiResonse.body.token,
-//                 username: req.body.username
-//             });
-//         } else {
-//             res.send({
-//                 message: helper.LOGIN_FAIL,
-//                 token: "",
-//                 username: ""
-//             });
-//         }
-//     });
-// });
+app.post('/api/add_member/', (req, res) => {
+    if (! ('username' in req.body)) {
+        return res.send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    if (! ('member_name' in req.body)) {
+        return res.send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    if (! ('one_time_quota' in req.body)) {
+        return res.send({
+            message: helper.MISSING_QUOTA_ONE_TIME
+        });
+    }
+
+    if (! ('monthly_quota' in req.body)) {
+        return res.send({
+            message: helper.MISSING_QUOTA_MONTH
+        });
+    }
+
+    
+
+});
 
 
 app.listen(port);
