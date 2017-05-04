@@ -1,10 +1,11 @@
 const express = require('express');
 const fs = require('fs');
 const mysql = require('mysql');
+const request = require('request');
 
 const model = require('./model.js');
 const helper = require('./helper.js');
-const request = require('request');
+const fileUpload = require('express-fileupload');
 const bodyParser = require('body-parser');
 
 const ACCESS_TOKEN = '531c2321-bfa8-3431-822e-72bb39df933b';
@@ -22,6 +23,7 @@ connection.connect();
 
 var app = express();
 const port = 3000;
+// app.use('/public', express.static(path.join(__dirname + '/public')));
 
 // Middleware
 app.use((req, res, next) => {
@@ -42,6 +44,7 @@ app.use((req, res, next) => {
   });
   next();
 });
+app.use(fileUpload());
 
 app.use(bodyParser.json({ limit: '4mb' }));     // allows app to read data from URLs (GET requests)
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -85,7 +88,6 @@ app.post('/api/check_login/', (req, res) => {
                 return res.send({
                     message: helper.VALID_TOKEN
                 });
-
             } else {
                 console.log('Token is not valid, should login normally with username and password');
                 return res.send({
@@ -95,6 +97,22 @@ app.post('/api/check_login/', (req, res) => {
         });
     }
 });
+
+// Get API Key for Face++
+var api_key = '';
+var api_secret = '';
+helper.getFacePPAPIKey(function (result) {
+    result = result.trim();
+    api_key = result.split('\n')[0];
+    api_secret = result.split('\n')[1];
+
+    if (api_key === '' || api_secret === '') {
+        console.log(helper.NO_FACEPP_API_KEY_FOUNT);
+    } else {
+        console.log("Found Face++ API KEY");
+    }
+});
+
 
 app.post('/api/login/', (req, res) => {
     // check para exist
@@ -165,21 +183,27 @@ app.post('/api/login/', (req, res) => {
 });
 
 
-app.get('/api/get_image?', (req, res) => {
-    if (!'username' in req.query) {
+// app.get('/', (req, res) => {
+//     res.send('Hello Express!');
+// });
+
+
+app.get('/api/get_image/:username/:user_type/:filename', (req, res) => {
+    // console.log(req.params);
+    if (!('username' in req.params)) {
         return res.send({
             message: helper.MISSING_USERNAME
         });
     }
-    if (!'user_type' in req.query) {
+    if (!('user_type' in req.params)) {
         return res.send({
             message: helper.MISSING_USER_TYPE
         });
     }
 
-    var username = req.query.username;
-    var user_type = req.query.user_type;
-    var path = 'user_faces';
+    var username = req.params.username;
+    var user_type = req.params.user_type;
+    var path = __dirname + '/user_faces';
 
     if (user_type === helper.USER_TYPE_CHILD) {
         path += '/child';
@@ -199,8 +223,61 @@ app.get('/api/get_image?', (req, res) => {
                 message: helper.READ_IMAGE_ERROR
             });
         }
-        res.writeHead(200, {'Content-Type': 'image/jpeg'});
-        res.end(data);
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.set("Accept-Ranges","bytes");
+        res.set("Content-Disposition", "attachment;filename=" + "username.jpg");
+        // res.writeHead(200, {'Content-Type': 'multipart/form-data'});
+        res.send(data);
+    });
+});
+
+
+app.post('/api/compare_faces', (req, res) => {
+    // if (!('username' in req.body)) {
+    //     return res.send({
+    //         message: helper.MISSING_USERNAME,
+    //         result: null
+    //     });
+    // }
+    // if (!('image' in req.body)) {
+    //     return res.send({
+    //         message: helper.MISSING_USERNAME,
+    //         result: null
+    //     });
+    // }
+
+    var url = 'https://api-us.faceplusplus.com/facepp/v3/compare';
+    var image_url1 = 'http://10.141.95.142:3000/api/get_image?username=whdawn&user_type=parent&filename=whdawn.jpg';
+    var image_url2 = 'http://10.141.95.142:3000/api/get_image?username=wanghaodawn&user_type=child&filename=wanghaodawn.jpg';
+    var postData = {
+        api_key: api_key,
+        api_secret: api_secret,
+        image_url1: image_url1,
+        image_url2: image_url2
+    }
+    console.log(postData);
+
+    var options = {
+        method: 'POST',
+        body: postData,
+        json: true,
+        url: url,
+    };
+
+    console.log(options);
+
+    request(options, function (err, response, body) {
+        if (err) {
+            console.error(err);
+            res.send({
+                message: helper.FAIL
+            })
+        }
+        console.log(response.body);
+        console.log(response.statusCode);
+        res.send({
+            message: helper.SUCCESS
+        })
     });
 });
 
