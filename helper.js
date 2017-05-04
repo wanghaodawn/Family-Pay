@@ -6,8 +6,13 @@ module.exports = {
     USER_TYPE_PARENT: 'parent',
     SUCCESS: 'Success',
     FAIL: 'Database Failure',
+    LOGIN_FAIL: 'Login Failure',
+    MISSING_TOKEN: 'Missing Token',
+    INVALID_TOKEN: 'Invalid Token',
+    VALID_TOKEN: 'Valid Token',
     MISSING_USERNAME: 'Missing Username',
     MISSING_USER_TYPE: 'Missing user_type',
+    MISSING_PASSWORD: 'Missing Password',
     INVALID_USER_TYPE: 'Invalid user_type',
     READ_IMAGE_ERROR: 'Cannot read the image'
 }

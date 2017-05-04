@@ -23,7 +23,6 @@ connection.connect();
 var app = express();
 const port = 3000;
 
-
 // Middleware
 app.use((req, res, next) => {
   var now = new Date().toString();
@@ -47,10 +46,69 @@ app.use((req, res, next) => {
 app.use(bodyParser.json({ limit: '4mb' }));     // allows app to read data from URLs (GET requests)
 app.use(bodyParser.urlencoded({ extended: false }));
 
+app.post('/api/check_login/', (req, res) => {
+
+    if (! ('token' in req.body)) {
+        console.log('Token missing, should login normally with username and password');
+        return res.send({
+            message: helper.MISSING_TOKEN
+        });
+    }
+    else {
+        console.log('token exist locally: ' + req.body.token);
+        var propertiesObject = {'page': 1, 'size': 10 };
+        var findAllPaymentsUrl = 'https://nginx0.pncapix.com/paymentsandtransfers/v1.0.0/payment';
+        var options = {
+            method: 'GET',
+            qs: propertiesObject,
+            json: true,
+            url: findAllPaymentsUrl,
+            headers: {
+                "Authorization": "Bearer " + ACCESS_TOKEN,
+                'X-Authorization': req.body.token
+            }
+        };
+
+        request(options, function (err, apiResonse, body) {
+            if (err) {
+                console.error('error calling get all payments api: ', err);
+                throw err
+            }
+
+            var statusCode = apiResonse.statusCode;
+            console.log('statusCode: ', statusCode);
+
+            if (statusCode == 200 || statusCode == 201) {
+                console.log('Token is valid, should scan face directly');
+                return res.send({
+                    message: helper.VALID_TOKEN
+                });
+
+            } else {
+                console.log('Token is not valid, should login normally with username and password');
+                return res.send({
+                    message: helper.INVALID_TOKEN
+                });
+            }
+        });
+    }
+});
 
 app.post('/api/login/', (req, res) => {
+    // check para exist
+    if (! ('username' in req.body)) {
+        return res.send({
+            message: helper.MISSING_USERNAME
+        });
+    }
 
-    console.log('receive login data: ' + req.body.username + " " + req.body.password);
+    if (! ('password' in req.body)) {
+        return res.send({
+            message: helper.MISSING_PASSWORD
+        });
+    }
+
+    // console.log('receive login data: ' + req.body.username + " " + req.body.password);
     var postData = {
         username: req.body.username,
         password: req.body.password
@@ -69,7 +127,7 @@ app.post('/api/login/', (req, res) => {
 
     request(options, function (err, apiResonse, body) {
         if (err) {
-            console.error('error posting json: ', err);
+            console.error('error calling login api json: ', err);
             throw err
         }
 
@@ -78,11 +136,21 @@ app.post('/api/login/', (req, res) => {
 
         if (statusCode == 200 || statusCode == 201) {
             console.log('Login successfully ' + apiResonse.body.token);
-            res.json({message: helper.SUCCESS, token: apiResonse.body.token}).status(200);
-        } else {
-            res.json({message: helper.FAIL, token: ""}).status(400);
-        }
 
+            // TODO: store new parent
+
+            return res.send({
+                message: helper.SUCCESS,
+                token: apiResonse.body.token,
+                username: req.body.username
+            });
+        } else {
+            return res.send({
+                message: helper.LOGIN_FAIL,
+                token: "",
+                username: ""
+            });
+        }
     });
 });
 
@@ -126,6 +194,66 @@ app.get('/api/get_image?', (req, res) => {
     });
 });
 
+
+// app.post('/api/add_member/', (req, res) => {
+//     // check para exist
+//     if (! 'username' in req.body) {
+//         return res.send({
+//             message: helper.MISSING_USERNAME
+//         });
+//     }
+//
+//     if (! 'password' in req.body) {
+//         return res.send({
+//             message: helper.MISSING_PASSWORD
+//         });
+//     }
+//
+//     // console.log('receive login data: ' + req.body.username + " " + req.body.password);
+//     var postData = {
+//         username: req.body.username,
+//         password: req.body.password
+//     };
+//
+//     var pncLoginUrl = 'https://nginx0.pncapix.com/security/v1.0.0/login';
+//     var options = {
+//         method: 'POST',
+//         body: postData,
+//         json: true,
+//         url: pncLoginUrl,
+//         headers: {
+//             "Authorization": "Bearer " + ACCESS_TOKEN
+//         }
+//     };
+//
+//     request(options, function (err, apiResonse, body) {
+//         if (err) {
+//             console.error('error calling login api json: ', err);
+//             throw err
+//         }
+//
+//         var statusCode = apiResonse.statusCode;
+//         console.log('statusCode: ', statusCode);
+//
+//         if (statusCode == 200 || statusCode == 201) {
+//             console.log('Login successfully ' + apiResonse.body.token);
+//
+//             // TODO: store new parent
+//
+//             res.send({
+//                 message: helper.SUCCESS,
+//                 token: apiResonse.body.token,
+//                 username: req.body.username
+//             });
+//         } else {
+//             res.send({
+//                 message: helper.LOGIN_FAIL,
+//                 token: "",
+//                 username: ""
+//             });
+//         }
+//     });
+// });
 
 
 app.listen(port);
