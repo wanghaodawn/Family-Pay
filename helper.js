@@ -10,4 +10,6 @@ module.exports = {
     MISSING_USER_TYPE: 'Missing user_type',
     INVALID_USER_TYPE: 'Invalid user_type',
     READ_IMAGE_ERROR: 'Cannot read the image'
+
+
 }

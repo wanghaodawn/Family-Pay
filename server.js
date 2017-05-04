@@ -18,6 +18,7 @@ connection.connect();
 
 var app = express();
 const port = 3000;
+// app.use('/public', express.static(path.join(__dirname + '/public')));
 
 
 // Middleware
@@ -41,26 +42,27 @@ app.use((req, res, next) => {
 });
 
 
-app.get('/', (req, res) => {
-    res.send('Hello Express!');
-});
+// app.get('/', (req, res) => {
+//     res.send('Hello Express!');
+// });
 
 
-app.get('/api/get_image?', (req, res) => {
-    if (!'username' in req.query) {
+app.get('/api/get_image/:username/:user_type/:filename', (req, res) => {
+    // console.log(req.params);
+    if (!'username' in req.params) {
         return res.send({
             message: helper.MISSING_USERNAME
         });
     }
-    if (!'user_type' in req.query) {
+    if (!'user_type' in req.params) {
         return res.send({
             message: helper.MISSING_USER_TYPE
         });
     }
 
-    var username = req.query.username;
-    var user_type = req.query.user_type;
-    var path = 'user_faces';
+    var username = req.params.username;
+    var user_type = req.params.user_type;
+    var path = __dirname + '/user_faces';
 
     if (user_type === helper.USER_TYPE_CHILD) {
         path += '/child';
@@ -80,11 +82,30 @@ app.get('/api/get_image?', (req, res) => {
                 message: helper.READ_IMAGE_ERROR
             });
         }
-        res.writeHead(200, {'Content-Type': 'image/jpeg'});
-        res.end(data);
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.set("Accept-Ranges","bytes");
+        res.set("Content-Disposition", "attachment;filename=" + "username.jpg");
+        // res.writeHead(200, {'Content-Type': 'multipart/form-data'});
+        res.send(data);
     });
 });
 
+
+// app.post('/api/', (req, res) => {
+//     if (!'username1' in req.body || !'username2' in req.body) {
+//         return res.send({
+//             message: helper.MISSING_USERNAME,
+//             result: null
+//         });
+//     }
+//     if (!'user_type1' in req.query || !'user_type2' in req.query) {
+//         return res.send({
+//             message: helper.MISSING_USER_TYPE,
+//             result: null
+//         });
+//     }
+//
+// });
 
 
 app.listen(port);
