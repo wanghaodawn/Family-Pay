@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS users;
 CREATE TABLE IF NOT EXISTS users (
     user_id INT NOT NULL AUTO_INCREMENT,
     username VARCHAR(20) NOT NULL,
@@ -5,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     PRIMARY KEY(user_id)
 );
 
+DROP TABLE IF EXISTS relationships;
 CREATE TABLE IF NOT EXISTS relationships (
     child_user_id VARCHAR(20) NOT NULL,
     parent_user_id VARCHAR(20) NOT NULL,

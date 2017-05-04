@@ -1,3 +1,5 @@
 node_modules/
 user_faces/
 *.log
+.idea/
+*.DS_Store
