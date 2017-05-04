@@ -1,9 +1,11 @@
 const express = require('express');
 const fs = require('fs');
 const mysql = require('mysql');
+const request = require('request');
 
 const model = require('./model.js');
 const helper = require('./helper.js');
+const fileUpload = require('express-fileupload');
 
 
 // Configurate the connection to MySQL
@@ -40,6 +42,23 @@ app.use((req, res, next) => {
   });
   next();
 });
+app.use(fileUpload());
+
+
+// Get API Key for Face++
+var api_key = '';
+var api_secret = '';
+helper.getFacePPAPIKey(function (result) {
+    result = result.trim();
+    api_key = result.split('\n')[0];
+    api_secret = result.split('\n')[1];
+
+    if (api_key === '' || api_secret === '') {
+        console.log(helper.NO_FACEPP_API_KEY_FOUNT);
+    } else {
+        console.log("Found Face++ API KEY");
+    }
+});
 
 
 // app.get('/', (req, res) => {
@@ -49,12 +68,12 @@ app.use((req, res, next) => {
 
 app.get('/api/get_image/:username/:user_type/:filename', (req, res) => {
     // console.log(req.params);
-    if (!'username' in req.params) {
+    if (!('username' in req.params)) {
         return res.send({
             message: helper.MISSING_USERNAME
         });
     }
-    if (!'user_type' in req.params) {
+    if (!('user_type' in req.params)) {
         return res.send({
             message: helper.MISSING_USER_TYPE
         });
@@ -91,21 +110,54 @@ app.get('/api/get_image/:username/:user_type/:filename', (req, res) => {
 });
 
 
-// app.post('/api/', (req, res) => {
-//     if (!'username1' in req.body || !'username2' in req.body) {
-//         return res.send({
-//             message: helper.MISSING_USERNAME,
-//             result: null
-//         });
-//     }
-//     if (!'user_type1' in req.query || !'user_type2' in req.query) {
-//         return res.send({
-//             message: helper.MISSING_USER_TYPE,
-//             result: null
-//         });
-//     }
-//
-// });
+app.post('/api/compare_faces', (req, res) => {
+    // if (!('username' in req.body)) {
+    //     return res.send({
+    //         message: helper.MISSING_USERNAME,
+    //         result: null
+    //     });
+    // }
+    // if (!('image' in req.body)) {
+    //     return res.send({
+    //         message: helper.MISSING_USERNAME,
+    //         result: null
+    //     });
+    // }
+
+    var url = 'https://api-us.faceplusplus.com/facepp/v3/compare';
+    var image_url1 = 'http://10.141.95.142:3000/api/get_image?username=whdawn&user_type=parent&filename=whdawn.jpg';
+    var image_url2 = 'http://10.141.95.142:3000/api/get_image?username=wanghaodawn&user_type=child&filename=wanghaodawn.jpg';
+    var postData = {
+        api_key: api_key,
+        api_secret: api_secret,
+        image_url1: image_url1,
+        image_url2: image_url2
+    }
+    console.log(postData);
+
+    var options = {
+        method: 'POST',
+        body: postData,
+        json: true,
+        url: url,
+    };
+
+    console.log(options);
+
+    request(options, function (err, response, body) {
+        if (err) {
+            console.error(err);
+            res.send({
+                message: helper.FAIL
+            })
+        }
+        console.log(response.body);
+        console.log(response.statusCode);
+        res.send({
+            message: helper.SUCCESS
+        })
+    });
+});
 
 
 app.listen(port);
