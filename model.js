@@ -305,13 +305,12 @@ module.exports = {
                 amount : data.amount, from_username : data.from_username,
                 from_name : data.from_name, to_username : data.to_username,
                 status : data.status};
-
         connection.query(queryString, data, function(err, rows) {
             if (err) {
                 console.log(err);
                 return callback(req, res, {message: helper.FAIL});
             }
-
+            console.log('Add new payment to app db');
             return callback(req, res, {
                     message: helper.SUCCESS,
                     payment_id : data.payment_id,

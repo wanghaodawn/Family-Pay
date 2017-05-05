@@ -10,7 +10,6 @@ const fileUpload = require('express-fileupload');
 
 
 const bodyParser = require('body-parser');
-const cors = require('cors');
 const moment = require('moment');
 
 const ACCESS_TOKEN = '531c2321-bfa8-3431-822e-72bb39df933b';
@@ -688,7 +687,7 @@ app.post('/api/makePayment/', (req, res) => {
                 }
 
                 var statusCode = paymentApiResonse.statusCode;
-                console.log('statusCode: ', statusCode);
+                console.log('make payment statusCode: ', statusCode);
 
                 if (statusCode == 200 || statusCode == 201) {
                     var payment_id = paymentApiResonse.body.paymentId;
@@ -702,7 +701,8 @@ app.post('/api/makePayment/', (req, res) => {
                                 to_username : req.body.toAccountId, // TODO
                                 status : helper.PAYMENT_DONE,
                                 };
-                        model.addPayment(connection, data, req, res, callback);
+
+                    model.addPayment(connection, data, req, res, callback);
 
                 } else {
                     return res.status(400).send({
