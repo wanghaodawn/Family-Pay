@@ -197,7 +197,8 @@ module.exports = {
             });
         }
 
-        var queryString = 'SELECT user_id, user_type, name, FROM users WHERE username = ? ORDER BY user_id;';
+        // console.log(username);
+        var queryString = 'SELECT user_id, user_type, name FROM users WHERE username = ? ORDER BY user_id;';
         connection.query(queryString, username, function(err, rows) {
             if (err) {
                 console.log(err);
@@ -322,6 +323,46 @@ module.exports = {
                     to_username : data.to_username,
                     status : data.status
                 });
+        });
+    },
+
+
+
+    getChildrenDataByUsername : function (connection, username, callback) {
+        if (username === null) {
+            return callback({
+                message: helper.MISSING_USERNAME,
+                user_id: null,
+                user_type: null,
+                name: null
+            });
+        }
+
+        var queryString = 'SELECT user_id, user_type, name, FROM users WHERE username = ? AND user_type = ? ORDER BY user_id;';
+        connection.query(queryString, [username, helper.USER_TYPE_CHILD], function(err, rows) {
+            if (err) {
+                console.log(err);
+                return callback({
+                    message: helper.FAIL,
+                    user_id: null,
+                    user_type: null,
+                    name: null
+                });
+            }
+
+            res = [];
+            for (var i = 0; i < rows.length; i++) {
+                dic = {};
+                dic['user_id'] = rows[0].user_id;
+                dic['user_type'] = rows[0].user_type;
+                dic['name'] = rows[0].name;
+                res.push(dic);
+            }
+
+            return callback({
+                message: helper.SUCCESS,
+                result: res
+            });
         });
     }
 }

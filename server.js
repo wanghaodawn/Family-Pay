@@ -235,44 +235,47 @@ app.get('/api/get_image/:username/:user_type/:user_id', (req, res) => {
 
 
 app.post('/api/insert_image', (req, res) => {
-    if (!('username' in req.body)) {
-        return res.send({
-            message: helper.MISSING_USERNAME,
-            username: null,
-            user_type: null,
-            user_id: null,
-            name: null
-        });
-    }
+    // if (!('username' in req.body)) {
+    //     return res.send({
+    //         message: helper.MISSING_USERNAME,
+    //         username: null,
+    //         user_type: null,
+    //         user_id: null,
+    //         name: null,
+    //         image: null
+    //     });
+    // }
 
-    var username = req.body.username;
+    var username = req.files.name.name;
     var user_type = helper.USER_TYPE_PARENT;
     var data = req.files.name.data;
     var new_image = new Buffer(data).toString('base64');
 
     var path = __dirname + '/user_faces/parent';
 
-    Model.getUserDataByUsername(connection, username, function(result) {
+    model.getUserDataByUsername(connection, username, function(result) {
         if (result.message !== helper.SUCCESS) {
             return res.send({
                 message: helper.FAIL,
                 username: null,
                 user_type: null,
                 user_id: null,
-                name: null
+                name: null,
+                image: null
             });
         }
 
-        var user_id = result[0].user_id;
+        var user_id = result.result[0].user_id;
         path += `/${username}_${user_id}.jpg`;
 
         fs.writeFileSync(path, new Buffer(new_image, 'base64'));
         return res.send({
             message: helper.SUCCESS,
             username: username,
-            user_type: result[0].user,
+            user_type: result.result[0].user_type,
             user_id: user_id,
-            name: result[0].name
+            name: result.result[0].name,
+            image: new_image
         });
     });
 });
@@ -313,14 +316,16 @@ app.post('/api/compare_faces', (req, res) => {
     //     console.log(result.result);
     // });
 
-    model.getFirstUserIdByUsername(connection, username, function(result) {
+    model.getUserDataByUsername(connection, username, function(result) {
         if (result.message !== helper.SUCCESS) {
             return res.send({
                 message: helper.FAIL,
                 username: null,
                 user_type: null,
                 user_id: null,
-                name: null
+                name: null,
+                image: null,
+                children: null
             });
         }
 
@@ -332,6 +337,11 @@ app.post('/api/compare_faces', (req, res) => {
             var user_id = result.result[i].user_id;
             var name = result.result[i].name;
             var path = __dirname + `/user_faces/${user_type}/${username}_${user_id}.jpg`;
+
+            if(!fs.existsSync(path)) {
+                similarity.push(0);
+                continue;
+            }
 
             var base64Image = fs.readFileSync(path, 'base64');
             helper.getSimilarityOfTwoImages(api_key, api_secret, new_image, base64Image, function (results) {
@@ -354,18 +364,38 @@ app.post('/api/compare_faces', (req, res) => {
                 username: null,
                 user_type: null,
                 user_id: null,
-                name: null
+                name: null,
+                image: null,
+                children: null
             });
         } else {
-            return res.send({
-                message: helper.SUCCESS,
-                username: result[maxIndex].username,
-                user_type: result[maxIndex].user_type,
-                user_id: result[maxIndex].user_id,
-                name: result[maxIndex].name
+            model.getChildrenDataByUsername(connection, result[maxIndex].username, function(rows) {
+                if (result.message !== helper.SUCCESS) {
+                    return res.send({
+                        message: helper.FAIL,
+                        username: null,
+                        user_type: null,
+                        user_id: null,
+                        name: null,
+                        image: null,
+                        children: null
+                    });
+                }
+                return res.send({
+                    message: helper.SUCCESS,
+                    username: result[maxIndex].username,
+                    user_type: result[maxIndex].user_type,
+                    user_id: result[maxIndex].user_id,
+                    name: result[maxIndex].name,
+                    image: fs.readFileSync(__dirname + `/user_faces/${user_type}/${username}_${user_id}.jpg`, 'base64'),
+                    children: rows.res
+                });
             });
         }
     });
+
+
+
     // model.getImagesByUsername(connection, username, function (result) {
     //     // console.log(result.images.length);
     //     if (result.message !== helper.SUCCESS) {
@@ -397,19 +427,19 @@ app.post('/api/compare_faces', (req, res) => {
 
 
 app.post('/api/add_child/', (req, res) => {
-    if (! ('username' in req.body) || ! ('child_name' in req.body)) {
+    if (! ('childName' in req.files.name)) {
         return res.status(400).send({
             message: helper.MISSING_USERNAME
         });
     }
 
-    if (! ('one_time_quota' in req.body)) {
+    if (! ('one_time_quota' in req.files.name)) {
         return res.status(400).send({
             message: helper.MISSING_QUOTA_ONE_TIME
         });
     }
 
-    if (! ('monthly_quota' in req.body)) {
+    if (! ('monthly_quota' in req.files.name)) {
         return res.status(400).send({
             message: helper.MISSING_QUOTA_MONTH
         });
@@ -417,10 +447,10 @@ app.post('/api/add_child/', (req, res) => {
 
     // TODO: image
     model.addChild(connection,
-                    req.body.child_name,
-                    req.body.username,
-                    req.body.one_time_quota,
-                    req.body.monthly_quota,
+                    req.files.name.childName,
+                    req.files.name.username,
+                    req.files.name.one_time_quota,
+                    req.files.name.monthly_quota,
                     req,
                     res,
                     function(req, res, result, id) {
@@ -429,6 +459,41 @@ app.post('/api/add_child/', (req, res) => {
                                 message: helper.FAIL
                             });
                         }
+
+                        var username = req.files.name.name;
+                        var user_type = helper.USER_TYPE_PARENT;
+                        var data = req.files.name.data;
+                        var new_image = new Buffer(data).toString('base64');
+
+                        Model.getUserDataByUsername(connection, username, function(result) {
+                            if (result.message !== helper.SUCCESS) {
+                                return res.send({
+                                    message: helper.FAIL,
+                                    username: null,
+                                    user_type: null,
+                                    user_id: null,
+                                    name: null,
+                                    image: null
+                                });
+                            }
+
+                            var user_id = result.result[0].user_id;
+                            var user_type = result.result[0].user_type;
+                            var user_id = result.result[0].user_id;
+
+                            var path = __dirname + '/user_faces/parent';
+                            path += `/${username}_${user_id}.jpg`;
+
+                            fs.writeFileSync(path, new Buffer(new_image, 'base64'));
+                            return res.send({
+                                message: helper.SUCCESS,
+                                username: username,
+                                user_type: user_type,
+                                user_id: user_id,
+                                name: result.result[0].name,
+                                image: new_image
+                            });
+                        });
 
                         return res.status(200).send({
                             message: helper.SUCCESS,
@@ -439,7 +504,6 @@ app.post('/api/add_child/', (req, res) => {
                             user_id: id
                         });
                     });
-
 });
 
 app.post('/api/add_admin/', (req, res) => {
