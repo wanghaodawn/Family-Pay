@@ -8,7 +8,6 @@ const model = require('./model.js');
 const helper = require('./helper.js');
 const fileUpload = require('express-fileupload');
 
-
 const bodyParser = require('body-parser');
 const moment = require('moment');
 
@@ -260,12 +259,6 @@ app.post('/api/insert_image', (req, res) => {
                 user_type: null,
                 user_id: null,
                 name: null
-    path += `/${username}.jpg`;
-    console.log(path);
-    fs.readFile(path, function(err, data) {
-        if (err) {
-            return res.status(400).send({
-                message: helper.READ_IMAGE_ERROR
             });
         }
 
