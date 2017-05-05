@@ -8,6 +8,7 @@ const helper = require('./helper.js');
 const fileUpload = require('express-fileupload');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const moment = require('moment');
 
 const ACCESS_TOKEN = '531c2321-bfa8-3431-822e-72bb39df933b';
 
@@ -122,20 +123,15 @@ app.post('/api/login/', (req, res) => {
     if (! ('username' in req.body)) {
         return res.status(400).send({
             message: helper.MISSING_USERNAME,
-            token: "",
-            username: ""
         });
     }
 
     if (! ('password' in req.body)) {
         return res.status(400).send({
             message: helper.MISSING_PASSWORD,
-            token: "",
-            username: ""
         });
     }
 
-    // console.log('receive login data: ' + req.body.username + " " + req.body.password);
     var postData = {
         username: req.body.username,
         password: req.body.password
@@ -157,8 +153,6 @@ app.post('/api/login/', (req, res) => {
             console.error('error calling login api json: ', err);
             return res.status(400).send({
                     message: helper.ERROR,
-                    token: "",
-                    username: ""
             });
         }
 
@@ -173,8 +167,6 @@ app.post('/api/login/', (req, res) => {
                 if (result.message !== helper.SUCCESS) {
                     return res.status(400).send({
                             message: helper.FAIL,
-                            token: "",
-                            username: req.body.username
                     });
                 }
 
@@ -187,8 +179,6 @@ app.post('/api/login/', (req, res) => {
         } else {
             return res.status(400).send({
                     message: helper.LOGIN_FAIL,
-                    token: "",
-                    username: ""
             });
         }
     });
@@ -295,13 +285,7 @@ app.post('/api/compare_faces', (req, res) => {
 
 
 app.post('/api/add_child/', (req, res) => {
-    if (! ('username' in req.body)) {
-        return res.status(400).send({
-            message: helper.MISSING_USERNAME
-        });
-    }
-
-    if (! ('child_name' in req.body)) {
+    if (! ('username' in req.body) || ! ('child_name' in req.body)) {
         return res.status(400).send({
             message: helper.MISSING_USERNAME
         });
@@ -327,14 +311,10 @@ app.post('/api/add_child/', (req, res) => {
                     req.body.monthly_quota,
                     req,
                     res,
-                    function(req, res, result) {
+                    function(req, res, result, id) {
                         if (result.message !== helper.SUCCESS) {
                             return res.status(400).send({
-                                message: helper.FAIL,
-                                username: req.body.username,
-                                child_name: req.body.child_name,
-                                monthly_quota: req.body.monthly_quota,
-                                one_time_quota: req.body.one_time_quota,
+                                message: helper.FAIL
                             });
                         }
 
@@ -344,6 +324,7 @@ app.post('/api/add_child/', (req, res) => {
                             child_name: req.body.child_name,
                             monthly_quota: req.body.monthly_quota,
                             one_time_quota: req.body.one_time_quota,
+                            user_id: id
                         });
                     });
 
@@ -368,12 +349,10 @@ app.post('/api/add_admin/', (req, res) => {
         req.body.username,
         req,
         res,
-        function(req, res, result) {
+        function(req, res, result, id) {
             if (result.message !== helper.SUCCESS) {
                 return res.status(400).send({
                     message: helper.FAIL,
-                    username: req.body.username,
-                    admin_name: req.body.admin_name,
                 });
             }
 
@@ -381,12 +360,248 @@ app.post('/api/add_admin/', (req, res) => {
                 message: helper.SUCCESS,
                 username: req.body.username,
                 admin_name: req.body.admin_name,
+                user_id: id
+
             });
         }
     );
 
 });
 
+
+app.put('/api/manage/', (req, res) => {
+    if (! ('username' in req.body) || ! ('target_name' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    if (! ('one_time_quota' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_QUOTA_ONE_TIME
+        });
+    }
+
+    if (! ('monthly_quota' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_QUOTA_MONTH
+        });
+    }
+
+    model.manage(connection,
+        req.body.username,
+        req.body.target_name,
+        req.body.one_time_quota,
+        req.body.monthly_quota,
+        req,
+        res,
+        function(req, res, result) {
+            if (result.message !== helper.SUCCESS) {
+                return res.status(400).send({
+                    message: helper.FAIL,
+                });
+            }
+
+            return res.status(200).send({
+                message: helper.SUCCESS,
+                username: req.body.username,
+                target_name: req.body.target_name,
+                monthly_quota: req.body.monthly_quota,
+                one_time_quota: req.body.one_time_quota,
+            });
+        }
+    );
+
+});
+
+app.post('/api/oneUserPayments/', (req, res) => {
+    if (! ('username' in req.body) || ! ('target_name' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    model.getOneUserPayments(connection,
+                            req.body.username,
+                            req.body.target_name,
+                            req,
+                            res,
+                            function(req, res, result, rows) {
+                                if (result.message !== helper.SUCCESS) {
+                                    return res.status(400).send({
+                                        message: helper.FAIL,
+                                    });
+                                }
+                                console.log('get one user payments: ' + rows);
+                                return res.status(200).send({messages: helper.SUCCESS, payments: rows});
+    });
+});
+
+app.post('/api/familyPayments/', (req, res) => {
+    if (! ('username' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    model.getFamilyPayments(connection,
+                            req,
+                            res,
+                            function(req, res, result, rows) {
+                            if (result.message !== helper.SUCCESS) {
+                                return res.status(400).send({
+                                    message: helper.FAIL,
+                                });
+                            }
+                            console.log('get family payments: ' + rows);
+                            return res.status(200).send({messages: helper.SUCCESS, payments: rows});
+    });
+
+    // var propertiesObject = {'page': 0, 'size': 5 };
+    // var findPaymentsUrl = 'https://nginx0.pncapix.com/paymentsandtransfers/v1.0.0/payment';
+    // var options = {
+    //     method: 'GET',
+    //     qs: propertiesObject,
+    //     json: true,
+    //     url: findPaymentsUrl,
+    //     headers: {
+    //         "Authorization": "Bearer " + ACCESS_TOKEN,
+    //         'X-Authorization': req.body.token
+    //     }
+    // };
+    //
+    // request(options, function (err, apiResonse, body) {
+    //     if (err) {
+    //         console.error('error calling get all payments api: ', err);
+    //         return res.status(400).send({
+    //             message: helper.ERROR
+    //         });
+    //     }
+    //
+    //     var statusCode = apiResonse.statusCode;
+    //     console.log('statusCode: ', statusCode);
+    //
+    //     if (statusCode == 200 || statusCode == 201) {
+    //         console.log('Token is valid, ');
+    //
+    //     } else {
+    //         console.log('Token is not valid');
+    //         return res.status(400).send({
+    //             message: helper.INVALID_TOKEN
+    //         });
+    //     }
+    // });
+});
+
+app.post('/api/makePayment/', (req, res) => {
+
+    if (! ('username' in req.body) || ! ('name' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    if ((! ('amount' in req.body)) || (! ('routingNumber' in req.body)) || (! ('toAccountId' in req.body))) {
+        return res.status(400).send({
+            message: helper.MISSING_PAYMENT_DATA
+        });
+    }
+
+    if (! ('token' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_TOKEN
+        });
+    }
+
+    // TODO: check one time and monthly limitation
+
+    // get one family account first, need account id to call api
+    var propertiesObject = {'page': 0, 'size': 1 };
+    var findAllPaymentsUrl = 'https://nginx0.pncapix.com/paymentsandtransfers/v1.0.0/payment';
+    var options = {
+        method: 'GET',
+        qs: propertiesObject,
+        json: true,
+        url: findAllPaymentsUrl,
+        headers: {
+            "Authorization": "Bearer " + ACCESS_TOKEN,
+            'X-Authorization': req.body.token
+        }
+    };
+
+    request(options, function (err, apiResonse, body) {
+        if (err) {
+            console.error('error calling get all payments api: ', err);
+            return res.status(400).send({
+                message: helper.ERROR
+            });
+        }
+
+        var statusCode = apiResonse.statusCode;
+
+        if (statusCode == 200 || statusCode == 201) {
+            console.log('get one family account id: ' + apiResonse.body.content[0].accountId);
+
+            var postData = {
+                "amount": req.body.amount,
+                "fromAccountId": apiResonse.body.content[0].accountId,
+                "routingNumber": req.body.routingNumber,
+                "toAccountId": req.body.toAccountId,
+            };
+            var makePaymentUrl = 'https://nginx0.pncapix.com/paymentsandtransfers/v1.0.0/payment/ach';
+            var options = {
+                method: 'POST',
+                body: postData,
+                json: true,
+                url: makePaymentUrl,
+                headers: {
+                    "Authorization": "Bearer " + ACCESS_TOKEN,
+                    'X-Authorization': req.body.token
+                }
+            };
+
+            request(options, function (err, paymentApiResonse, body) {
+                if (err) {
+                    console.error('error calling get all payments api: ', err);
+                    return res.status(400).send({
+                        message: helper.ERROR
+                    });
+                }
+
+                var statusCode = paymentApiResonse.statusCode;
+                console.log('statusCode: ', statusCode);
+
+                if (statusCode == 200 || statusCode == 201) {
+                    var payment_id = paymentApiResonse.body.paymentId;
+                    var payment_time = moment((new Date()).format('YYYY/MM/DD HH:mm:ss')).format("YYYY-MM-DD HH:mm:ss");
+                    var data = {
+                                payment_id : paymentApiResonse.body.paymentId,
+                                payment_time : payment_time,
+                                amount: req.body.amount,
+                                from_username: req.body.username,
+                                from_name : req.body.name,
+                                to_username : req.body.toAccountId, // TODO
+                                status : helper.PAYMENT_DONE,
+                                };
+                        model.addPayment(connection, data, req, res, callback);
+
+                } else {
+                    return res.status(400).send({
+                        message: helper.PAYMENT_FAIL,
+                    });
+                }
+            });
+
+
+
+        } else {
+            return res.status(400).send({
+                message: helper.INVALID_TOKEN
+            });
+        }
+    });
+
+});
 
 app.listen(port);
 console.log(`Starting server at localhost:${port}`);

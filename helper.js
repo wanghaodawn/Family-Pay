@@ -20,6 +20,10 @@ module.exports = {
     MISSING_IMAGE: 'Missing Image',
     INVALID_USER_TYPE: 'Invalid user_type',
     NO_FACEPP_API_KEY_FOUNT: 'Cannot get the api key of face++',
+    PAYMENT_PENDING: 'pending',
+    PAYMENT_DONE: 'done',
+    MISSING_PAYMENT_DATA: 'Missing Payment Data',
+    PAYMENT_FAIL: 'Payment Fail',
 
     getFacePPAPIKey : function (callback) {
         fs.readFile('FACEPP_API_KEY.dat', 'utf8', function (err, data) {
