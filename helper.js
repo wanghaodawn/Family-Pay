@@ -14,13 +14,19 @@ module.exports = {
     MISSING_USERNAME: 'Missing Username',
     MISSING_USER_TYPE: 'Missing user_type',
     MISSING_PASSWORD: 'Missing Password',
+    MISSING_QUOTA_ONE_TIME: 'Missing One Time Quota',
+    MISSING_QUOTA_MONTH: 'Missing Monthly Quota',
+    READ_IMAGE_ERROR: 'Cannot read the image',
+    ERROR: 'Error',
     MISSING_IMAGE: 'Missing Image',
     MISSING_USER_ID: 'Missing User Id',
     INVALID_USER_TYPE: 'Invalid user_type',
-    READ_IMAGE_ERROR: 'Cannot read the image',
     NO_FACEPP_API_KEY_FOUNT: 'Cannot get the api key of face++',
     NO_FACES_MATCHED: 'No Faces Matched',
-
+    PAYMENT_PENDING: 'pending',
+    PAYMENT_DONE: 'done',
+    MISSING_PAYMENT_DATA: 'Missing Payment Data',
+    PAYMENT_FAIL: 'Payment Fail',
 
     getFacePPAPIKey : function (callback) {
         fs.readFile('FACEPP_API_KEY.dat', 'utf8', function (err, data) {
