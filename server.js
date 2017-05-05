@@ -2,13 +2,12 @@ const express = require('express');
 const fs = require('fs');
 const mysql = require('mysql');
 const request = require('request');
+const cors = require('cors');
 
 const model = require('./model.js');
 const helper = require('./helper.js');
 const fileUpload = require('express-fileupload');
 
-
-const request = require('request');
 const bodyParser = require('body-parser');
 
 const ACCESS_TOKEN = '531c2321-bfa8-3431-822e-72bb39df933b';
@@ -48,6 +47,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(fileUpload());
+app.use(cors());
+
 
 app.use(bodyParser.json({ limit: '4mb' }));     // allows app to read data from URLs (GET requests)
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -181,51 +182,92 @@ app.post('/api/login/', (req, res) => {
 // });
 
 
-app.get('/api/get_image/:username/:user_type/:filename', (req, res) => {
+app.get('/api/get_image/:username/:user_type/:user_id', (req, res) => {
     // console.log(req.params);
     if (!('username' in req.params)) {
         return res.send({
-            message: helper.MISSING_USERNAME
+            message: helper.MISSING_USERNAME,
+            image: null
         });
     }
     if (!('user_type' in req.params)) {
         return res.send({
-            message: helper.MISSING_USER_TYPE
+            message: helper.MISSING_USER_TYPE,
+            image: null
+        });
+    }
+    if (!('user_id' in req.body)) {
+        return res.send({
+            message: helper.MISSING_USER_ID
         });
     }
 
     var username = req.params.username;
     var user_type = req.params.user_type;
-    var path = __dirname + '/user_faces';
+    var user_id = req.params.user_id;
 
-    if (user_type === helper.USER_TYPE_CHILD) {
-        path += '/child';
-    } else if (user_type === helper.USER_TYPE_PARENT) {
-        path += '/parent';
-    } else {
+    helper.getImageBase64(username, user_type, user_id, function(result) {
+        if (result.message !== helper.SUCCESS) {
+            return res.send({
+                message: helper.READ_IMAGE_ERROR,
+                image: null
+            });
+        }
+
         return res.send({
-            message: helper.MISSING_USER_TYPE
+            message: helper.SUCCESS,
+            image: result.image
+        });
+    });
+});
+
+
+app.post('/api/insert_image', (req, res) => {
+    if (!('username' in req.body)) {
+        return res.send({
+            message: helper.MISSING_USERNAME,
+            username: null,
+            user_type: null,
+            user_id: null,
+            name: null
         });
     }
 
-    path += `/${username}.jpg`;
-    console.log(path);
-    fs.readFile(path, function(err, data) {
-        if (err) {
+    var username = req.body.username;
+    var user_type = helper.USER_TYPE_PARENT;
+    var data = req.files.name.data;
+    var new_image = new Buffer(data).toString('base64');
+
+    var path = __dirname + '/user_faces/parent';
+
+    Model.getUserDataByUsername(connection, username, function(result) {
+        if (result.message !== helper.SUCCESS) {
             return res.send({
-                message: helper.READ_IMAGE_ERROR
+                message: helper.FAIL,
+                username: null,
+                user_type: null,
+                user_id: null,
+                name: null
             });
         }
-        res.setHeader('Content-Type', 'image/jpeg');
-        res.set("Accept-Ranges","bytes");
-        res.set("Content-Disposition", "attachment;filename=" + "username.jpg");
-        // res.writeHead(200, {'Content-Type': 'multipart/form-data'});
-        res.send(data);
+
+        var user_id = result[0].user_id;
+        path += `/${username}_${user_id}.jpg`;
+
+        fs.writeFileSync(path, new Buffer(new_image, 'base64'));
+        return res.send({
+            message: helper.SUCCESS,
+            username: username,
+            user_type: result[0].user,
+            user_id: user_id,
+            name: result[0].name
+        });
     });
 });
 
 
 app.post('/api/compare_faces', (req, res) => {
+    // console.log(req);
     // if (!('username' in req.body)) {
     //     return res.send({
     //         message: helper.MISSING_USERNAME,
@@ -238,40 +280,109 @@ app.post('/api/compare_faces', (req, res) => {
     //         result: null
     //     });
     // }
+    // var username = req.body.username;
+    // var username = 'wanghaodawn';
+    // var new_image = req.body.image;
+    // console.log(new_image);
 
-    var url = 'https://api-us.faceplusplus.com/facepp/v3/compare';
-    var image_url1 = 'http://10.141.95.142:3000/api/get_image?username=whdawn&user_type=parent&filename=whdawn.jpg';
-    var image_url2 = 'http://10.141.95.142:3000/api/get_image?username=wanghaodawn&user_type=child&filename=wanghaodawn.jpg';
-    var postData = {
-        api_key: api_key,
-        api_secret: api_secret,
-        image_url1: image_url1,
-        image_url2: image_url2
-    }
-    console.log(postData);
+    console.log(req.files);
+    var data = req.files.name.data;
+    var username = req.files.name.name;
+    var new_image = new Buffer(data).toString('base64');
+    // console.log(username);
+    // console.log(new_image);
 
-    var options = {
-        method: 'POST',
-        body: postData,
-        json: true,
-        url: url,
-    };
+    // fs.writeFileSync("test1.jpg", new Buffer(new_image, 'base64'));
 
-    console.log(options);
+    // console.log(username);
+    // var new_image = fs.readFileSync(req.body.image, 'base64');
 
-    request(options, function (err, response, body) {
-        if (err) {
-            console.error(err);
-            res.send({
-                message: helper.FAIL
-            })
+    // helper.getSimilarityOfTwoImages(api_key, api_secret, new_image, new_image, function (result) {
+    //     console.log(result.result);
+    // });
+
+    model.getFirstUserIdByUsername(connection, username, function(result) {
+        if (result.message !== helper.SUCCESS) {
+            return res.send({
+                message: helper.FAIL,
+                username: null,
+                user_type: null,
+                user_id: null,
+                name: null
+            });
         }
-        console.log(response.body);
-        console.log(response.statusCode);
-        res.send({
-            message: helper.SUCCESS
-        })
+
+        var similarity = [];
+        var maxSimilarity = 0.0;
+        var maxIndex = 0;
+        for (var i = 0; i < result.result.length; i++) {
+            var user_type = result.result[i].user_type;
+            var user_id = result.result[i].user_id;
+            var name = result.result[i].name;
+            var path = __dirname + `/user_faces/${user_type}/${username}_${user_id}.jpg`;
+
+            var base64Image = fs.readFileSync(path, 'base64');
+            helper.getSimilarityOfTwoImages(api_key, api_secret, new_image, base64Image, function (results) {
+                if (results.response.statusCode !== 200) {
+                    similarity.push(0);
+                } else {
+                    var confidence = results.response.confidence;
+                    similarity.push[confidence];
+                    if (confidence > maxSimilarity) {
+                        maxIndex = i;
+                        maxSimilarity = confidence;
+                    }
+                }
+            });
+        }
+
+        if (maxSimilarity < 50) {
+            return res.send({
+                message: helper.NO_FACES_MATCHED,
+                username: null,
+                user_type: null,
+                user_id: null,
+                name: null
+            });
+        } else {
+            return res.send({
+                message: helper.SUCCESS,
+                username: result[maxIndex].username,
+                user_type: result[maxIndex].user_type,
+                user_id: result[maxIndex].user_id,
+                name: result[maxIndex].name
+            });
+        }
     });
+
+
+    // model.getImagesByUsername(connection, username, function (result) {
+    //     // console.log(result.images.length);
+    //     if (result.message !== helper.SUCCESS) {
+    //         return res.send({
+    //             message: helper.FAIL,
+    //             result: null
+    //         });
+    //     }
+    //
+    //     var images = result.images;
+    //     var similarity = [];
+    //     var itemProcesses = 0;
+    //     images.forEach((item, index, array) => {
+    //         // console.log(item);
+    //         // console.log(item.length);
+    //         var base64Image = fs.readFileSync('/Users/Dawn/Desktop/Git/Family-Pay/user_faces/parent/whdawn.jpg', 'base64');
+    //         helper.getSimilarityOfTwoImages(api_key, api_secret, new_image, item, function (result) {
+    //             // console.log(result.result);
+    //         });
+    //         itemProcesses++;
+    //         if (itemProcesses === array.length) {
+    //             return res.send({
+    //                 message: helper.SUCCESS
+    //             });
+    //         }
+    //     });
+    // });
 });
 
 
