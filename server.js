@@ -7,6 +7,7 @@ const model = require('./model.js');
 const helper = require('./helper.js');
 const fileUpload = require('express-fileupload');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
 const ACCESS_TOKEN = '531c2321-bfa8-3431-822e-72bb39df933b';
 
@@ -49,11 +50,13 @@ app.use(fileUpload());
 app.use(bodyParser.json({ limit: '4mb' }));     // allows app to read data from URLs (GET requests)
 app.use(bodyParser.urlencoded({ extended: false }));
 
+app.use(cors());
+
 app.post('/api/check_login/', (req, res) => {
 
     if (! ('token' in req.body)) {
         console.log('Token missing, should login normally with username and password');
-        return res.send({
+        return res.status(400).send({
             message: helper.MISSING_TOKEN
         });
     }
@@ -75,7 +78,7 @@ app.post('/api/check_login/', (req, res) => {
         request(options, function (err, apiResonse, body) {
             if (err) {
                 console.error('error calling get all payments api: ', err);
-                return res.send({
+                return res.status(400).send({
                     message: helper.ERROR
                 });
             }
@@ -85,12 +88,12 @@ app.post('/api/check_login/', (req, res) => {
 
             if (statusCode == 200 || statusCode == 201) {
                 console.log('Token is valid, should scan face directly');
-                return res.send({
+                return res.status(200).send({
                     message: helper.VALID_TOKEN
                 });
             } else {
                 console.log('Token is not valid, should login normally with username and password');
-                return res.send({
+                return res.status(400).send({
                     message: helper.INVALID_TOKEN
                 });
             }
@@ -117,7 +120,7 @@ helper.getFacePPAPIKey(function (result) {
 app.post('/api/login/', (req, res) => {
     // check para exist
     if (! ('username' in req.body)) {
-        return res.send({
+        return res.status(400).send({
             message: helper.MISSING_USERNAME,
             token: "",
             username: ""
@@ -125,7 +128,7 @@ app.post('/api/login/', (req, res) => {
     }
 
     if (! ('password' in req.body)) {
-        return res.send({
+        return res.status(400).send({
             message: helper.MISSING_PASSWORD,
             token: "",
             username: ""
@@ -152,10 +155,10 @@ app.post('/api/login/', (req, res) => {
     request(options, function (err, apiResonse, body) {
         if (err) {
             console.error('error calling login api json: ', err);
-            return res.send({
-                message: helper.ERROR,
-                token: "",
-                username: ""
+            return res.status(400).send({
+                    message: helper.ERROR,
+                    token: "",
+                    username: ""
             });
         }
 
@@ -163,20 +166,29 @@ app.post('/api/login/', (req, res) => {
         console.log('statusCode: ', statusCode);
 
         if (statusCode == 200 || statusCode == 201) {
-            console.log('Login successfully ' + apiResonse.body.token);
+            console.log('Login successfully ');
 
-            // TODO: store new parent
+            model.registerParent(connection, req.body.username, req, res, function(req, res, result) {
 
-            return res.send({
-                message: helper.SUCCESS,
-                token: apiResonse.body.token,
-                username: req.body.username
+                if (result.message !== helper.SUCCESS) {
+                    return res.status(400).send({
+                            message: helper.FAIL,
+                            token: "",
+                            username: req.body.username
+                    });
+                }
+
+                return res.status(200).send({
+                    message: helper.SUCCESS,
+                    token: apiResonse.body.token,
+                    username: req.body.username
+                });
             });
         } else {
-            return res.send({
-                message: helper.LOGIN_FAIL,
-                token: "",
-                username: ""
+            return res.status(400).send({
+                    message: helper.LOGIN_FAIL,
+                    token: "",
+                    username: ""
             });
         }
     });
@@ -219,7 +231,7 @@ app.get('/api/get_image/:username/:user_type/:filename', (req, res) => {
     console.log(path);
     fs.readFile(path, function(err, data) {
         if (err) {
-            return res.send({
+            return res.status(400).send({
                 message: helper.READ_IMAGE_ERROR
             });
         }
@@ -269,7 +281,7 @@ app.post('/api/compare_faces', (req, res) => {
     request(options, function (err, response, body) {
         if (err) {
             console.error(err);
-            res.send({
+            res.status(400).send({
                 message: helper.FAIL
             })
         }
@@ -282,32 +294,96 @@ app.post('/api/compare_faces', (req, res) => {
 });
 
 
-app.post('/api/add_member/', (req, res) => {
+app.post('/api/add_child/', (req, res) => {
     if (! ('username' in req.body)) {
-        return res.send({
+        return res.status(400).send({
             message: helper.MISSING_USERNAME
         });
     }
 
-    if (! ('member_name' in req.body)) {
-        return res.send({
+    if (! ('child_name' in req.body)) {
+        return res.status(400).send({
             message: helper.MISSING_USERNAME
         });
     }
 
     if (! ('one_time_quota' in req.body)) {
-        return res.send({
+        return res.status(400).send({
             message: helper.MISSING_QUOTA_ONE_TIME
         });
     }
 
     if (! ('monthly_quota' in req.body)) {
-        return res.send({
+        return res.status(400).send({
             message: helper.MISSING_QUOTA_MONTH
         });
     }
 
-    
+    // TODO: image
+    model.addChild(connection,
+                    req.body.child_name,
+                    req.body.username,
+                    req.body.one_time_quota,
+                    req.body.monthly_quota,
+                    req,
+                    res,
+                    function(req, res, result) {
+                        if (result.message !== helper.SUCCESS) {
+                            return res.status(400).send({
+                                message: helper.FAIL,
+                                username: req.body.username,
+                                child_name: req.body.child_name,
+                                monthly_quota: req.body.monthly_quota,
+                                one_time_quota: req.body.one_time_quota,
+                            });
+                        }
+
+                        return res.status(200).send({
+                            message: helper.SUCCESS,
+                            username: req.body.username,
+                            child_name: req.body.child_name,
+                            monthly_quota: req.body.monthly_quota,
+                            one_time_quota: req.body.one_time_quota,
+                        });
+                    });
+
+});
+
+app.post('/api/add_admin/', (req, res) => {
+    if (! ('username' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    if (! ('admin_name' in req.body)) {
+        return res.status(400).send({
+            message: helper.MISSING_USERNAME
+        });
+    }
+
+    // TODO: image
+    model.addAdmin(connection,
+        req.body.admin_name,
+        req.body.username,
+        req,
+        res,
+        function(req, res, result) {
+            if (result.message !== helper.SUCCESS) {
+                return res.status(400).send({
+                    message: helper.FAIL,
+                    username: req.body.username,
+                    admin_name: req.body.admin_name,
+                });
+            }
+
+            return res.status(200).send({
+                message: helper.SUCCESS,
+                username: req.body.username,
+                admin_name: req.body.admin_name,
+            });
+        }
+    );
 
 });
 
