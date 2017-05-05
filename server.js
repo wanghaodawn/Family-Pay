@@ -8,9 +8,8 @@ const model = require('./model.js');
 const helper = require('./helper.js');
 const fileUpload = require('express-fileupload');
 
-
 const bodyParser = require('body-parser');
-const cors = require('cors');
+
 const moment = require('moment');
 
 const ACCESS_TOKEN = '531c2321-bfa8-3431-822e-72bb39df933b';
@@ -261,12 +260,6 @@ app.post('/api/insert_image', (req, res) => {
                 user_type: null,
                 user_id: null,
                 name: null
-    path += `/${username}.jpg`;
-    console.log(path);
-    fs.readFile(path, function(err, data) {
-        if (err) {
-            return res.status(400).send({
-                message: helper.READ_IMAGE_ERROR
             });
         }
 
