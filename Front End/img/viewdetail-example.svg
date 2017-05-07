@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="338px" height="166px" viewBox="0 0 338 166" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background: #FFFFFF;">
+    <!-- Generator: Sketch 39.1 (31720) - http://www.bohemiancoding.com/sketch -->
+    <title>Artboard</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="assets" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard">
+            <ellipse id="Oval-4-Copy" stroke="#F7882F" stroke-width="10" stroke-dasharray="60,300" transform="translate(167.864930, 89.864930) rotate(187.000000) translate(-167.864930, -89.864930) " cx="167.86493" cy="89.8649297" rx="60" ry="60"></ellipse>
+            <ellipse id="Oval-4" stroke="#6B7A8F" stroke-width="10" stroke-dasharray="165,195" cx="168" cy="90" rx="60" ry="60"></ellipse>
+            <path d="M167.735563,149.735563 C200.872648,149.735563 227.735563,122.872648 227.735563,89.7355629 C227.735563,56.5984779 200.872648,29.7355629 167.735563,29.7355629 C134.598478,29.7355629 107.735563,56.5984779 107.735563,89.7355629 C107.735563,122.872648 134.598478,149.735563 167.735563,149.735563 Z" id="Oval-4-Copy-2" stroke="#DCC7AA" stroke-width="10" stroke-dasharray="135,225" transform="translate(167.735563, 89.735563) rotate(475.000000) translate(-167.735563, -89.735563) "></path>
+            <text id="$450" font-family="Roboto-Regular, Roboto" font-size="20" font-weight="normal" fill="#6B7A8F">
+                <tspan x="145" y="96">$450</tspan>
+            </text>
+            <text id="Online-Store-39%" font-family="Roboto-Regular, Roboto" font-size="16" font-weight="normal" fill="#6B7A8F">
+                <tspan x="248" y="116">Online Store</tspan>
+                <tspan x="248" y="135">39%</tspan>
+            </text>
+            <text id="Offline-36%" font-family="Roboto-Regular, Roboto" font-size="16" font-weight="normal" fill="#DCC7AA">
+                <tspan x="41" y="134">Offline</tspan>
+                <tspan x="41" y="153">36%</tspan>
+            </text>
+            <text id="Transit-25%" font-family="Roboto-Regular, Roboto" font-size="16" font-weight="normal" fill="#F7882F">
+                <tspan x="52" y="15">Transit</tspan>
+                <tspan x="52" y="34">25%</tspan>
+            </text>
+        </g>
+    </g>
+</svg>
